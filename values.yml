@@ -1,0 +1,104 @@
+storageClassName: standard-rwo
+
+# Shkeeper core
+shkeeper:
+  image: vsyshost/shkeeper:2.3.0
+  port: 5000
+
+# Bitcoin
+btc:
+  enabled: true
+  mainnet: true
+  bitcoind:
+    image: vsyshost/bitcoind:27.0
+  persistence:
+    enabled: true
+    size: 50Gi
+
+# Tron
+tron_fullnode:
+  enabled: false
+  url: "https://api.trongrid.io"
+  solidity_url: "https://api.trongrid.io"
+  mainnet: true
+
+tron_shkeeper:
+  image: vsyshost/tron-shkeeper:1.1.6
+  host: 'tron-shkeeper'
+  port: 6000
+
+trx:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+
+usdt:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+
+# Disable others
+ltc:
+  enabled: false
+doge:
+  enabled: false
+eth:
+  enabled: false
+eth_usdt:
+  enabled: false
+eth_usdc:
+  enabled: false
+eth_pyusd:
+  enabled: false
+monero:
+  enabled: false
+bnb:
+  enabled: false
+bnb_usdt:
+  enabled: false
+bnb_usdc:
+  enabled: false
+xrp:
+  enabled: false
+matic:
+  enabled: false
+polygon_usdt:
+  enabled: false
+polygon_usdc:
+  enabled: false
+avax:
+  enabled: false
+avalanche_usdt:
+  enabled: false
+avalanche_usdc:
+  enabled: false
+btc_lightning:
+  enabled: false
+sol:
+  enabled: false
+solana_usdt:
+  enabled: false
+solana_usdc:
+  enabled: false
+solana_pyusd:
+  enabled: false
+
+# MariaDB
+mariadb:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 20Gi
+
+# Redis
+redis:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 1Gi
+
+# Public access
+service:
+  type: LoadBalancer
