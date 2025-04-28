@@ -1,3 +1,95 @@
+This is cloned repo of shkeeper cryptocurrency payment Gateway
+This is the laearning project to deply the blockchain based application in GKE
+
+
+Deployment of SHKeeper Payment Gateway
+
+Since shkeeper.io provides Helm charts and Docker support, it’s easier to be deploying it on Kubernetes using Google Kubernetes Engine (GKE). 
+Required Tools
+	GCP Account
+	Google Cloud SDK (gcloud): Install the gcloud CLI on your local machine- https://cloud.google.com/sdk/docs/install
+	kubectl: Install kubectl to manage Kubernetes clusters. https://kubernetes.io/docs/tasks/tools/
+	Helm: Install Helm to deploy the Helm chart provided by shkeeper.io
+	Docker
+	Terraform
+
+Step 1: 
+	Logged in to GCP Console and created a new shkeeper-project with the same project id and Note down the Project ID. Ensure billing is enabled for project
+	In the GCP Console, go to "APIs & Services" > "Library".
+Enable the following APIs:
+I.	Kubernetes Engine API
+II.	Compute Engine API
+III.	Container Registry API (if you need to push custom Docker images)
+Step 2:
+	Create main.tf file to create a cluster in gcp and then executed the main.tf file with below commands
+i.	terraform init
+ii.	terraform plan
+iii.	terraform apply
+
+	to authenticate with GCP  follow the below commands before that make sure you have installed gcp cloud sdk in your machine
+I.	gcloud auth login
+II.	gcloud config set project shkeeper-project
+	verify project
+I.	gcloud config get-value project
+
+
+
+Step 3:
+	To connect to GKE Cluster
+I.	 gcloud container clusters get-credentials shkeeper-cluster --region us-central1-a --project shkeeper-project
+	Verify connection
+I.	 kubectl get nodes
+
+Step 4:
+	git clone https://github.com/vsys-host/shkeeper.io.git
+cd shkeeper.io
+	The shkeeper.io README suggests adding specific Helm repositories
+II.	helm repo add vsys-host https://vsys-host.github.io/helm-charts
+III.	helm repo add mittwald https://helm.mittwald.de
+IV.	helm repo add jetstack https://charts.jetstack.io
+V.	helm repo update
+VI.	helm install kubernetes-secret-generator mittwald/kubernetes-secret-generator --namespace kube-system
+
+	created a values.yml- 
+	The values.yml file is a Helm configuration file that customizes the vsys-host/shkeeper chart’s behavior during deployment. It overrides the chart’s default settings (helm show values vsys-host/shkeeper) to define pod images, enable/disable features, configure storage, and expose services. For our setup 
+1.	 helm install -f values.yaml shkeeper vsys-host/shkeeper --namespace default
+	To access the application we can get the external ip by running following command
+               kubectl get services –n shkeeper
+	Open http://<EXTERNAL-IP>:5000 in a browser.
+
+
+
+
+
+
+
+
+
+About values.yml file
+
+	storageClassName: standard-rwo 
+Purpose: Defines the Kubernetes StorageClass for all PVCs(Persistent volume claims) in the deployment
+Value: standard-rwo (ReadWriteOnce SSD in GKE). GKE’s default StorageClass for persistent disks, ensuring compatibility and performance (SSD-backed).
+	Why were this values chosen in values.yml Started with helm show values vsys-host/shkeeper to understand structure and defaults.
+	The vsys-host/shkeeper chart contains templates (e.g., templates/bitcoind-deployment.yaml) that define Kubernetes resources
+	We can enable crypto currencies as per our goal simply by modifying the values.yml file
+	Helm repository- https://github.com/vsys-host/helm-charts/blob/main/charts/shkeeper/templates/deployments/ethereum-shkeeper.yaml
+	Refer- https://github.com/AKD-2022/shkeeper.io.git (you will find the main.tf and values.yml here)
+
+
+
+
+ 
+
+
+
+
+ 
+
+
+
+
+
 # SHKeeper.io<!-- omit in toc -->
 
 ![SHKeeper logo](https://github.com/user-attachments/assets/dd573f14-1b8e-47d7-86e5-59f24b67b027)               
