@@ -1,91 +1,179 @@
 This is cloned repo of shkeeper cryptocurrency payment Gateway
-This is the laearning project to deply the blockchain based application in GKE
+This is the laearning project to deply the blockchain based application in GKE, 
 
+# Deployment of SHKeeper Payment Gateway
 
-Deployment of SHKeeper Payment Gateway
+This guide outlines the process of deploying the SHKeeper Payment Gateway on Google Kubernetes Engine (GKE) using Helm charts and Docker, as provided by [shkeeper.io](https://shkeeper.io). The deployment leverages Kubernetes for scalability and Terraform for infrastructure provisioning.
 
-Since shkeeper.io provides Helm charts and Docker support, it’s easier to be deploying it on Kubernetes using Google Kubernetes Engine (GKE). 
-Required Tools
-	GCP Account
-	Google Cloud SDK (gcloud): Install the gcloud CLI on your local machine- https://cloud.google.com/sdk/docs/install
-	kubectl: Install kubectl to manage Kubernetes clusters. https://kubernetes.io/docs/tasks/tools/
-	Helm: Install Helm to deploy the Helm chart provided by shkeeper.io
-	Docker
-	Terraform
+## Required Tools
 
-Step 1: 
-	Logged in to GCP Console and created a new shkeeper-project with the same project id and Note down the Project ID. Ensure billing is enabled for project
-	In the GCP Console, go to "APIs & Services" > "Library".
-Enable the following APIs:
-I.	Kubernetes Engine API
-II.	Compute Engine API
-III.	Container Registry API (if you need to push custom Docker images)
-Step 2:
-	Create main.tf file to create a cluster in gcp and then executed the main.tf file with below commands
-i.	terraform init
-ii.	terraform plan
-iii.	terraform apply
+- **GCP Account**: A Google Cloud Platform account with billing enabled.
+- **Google Cloud SDK (gcloud)**: CLI for managing GCP resources. [Install gcloud](https://cloud.google.com/sdk/docs/install).
+- **kubectl**: Tool for interacting with Kubernetes clusters. [Install kubectl](https://kubernetes.io/docs/tasks/tools/).
+- **Helm**: Package manager for Kubernetes to deploy SHKeeper Helm charts. [Install Helm](https://helm.sh/docs/intro/install/).
+- **Docker**: For building and managing container images. [Install Docker](https://docs.docker.com/get-docker/).
+- **Terraform**: For provisioning GKE infrastructure. [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
-	to authenticate with GCP  follow the below commands before that make sure you have installed gcp cloud sdk in your machine
-I.	gcloud auth login
-II.	gcloud config set project shkeeper-project
-	verify project
-I.	gcloud config get-value project
+## Deployment Steps
 
+### Step 1: Set Up GCP Project
+1. **Create a GCP Project**:
+   - Log in to the [GCP Console](https://console.cloud.google.com/).
+   - Create a new project named `shkeeper-project` with the project ID `shkeeper-project`.
+   - Note down the **Project ID**.
+   - Ensure billing is enabled for the project (link a billing account in "Billing" section).
 
+2. **Enable Required APIs**:
+   - Navigate to **APIs & Services** > **Library** in the GCP Console.
+   - Enable the following APIs:
+     - **Kubernetes Engine API** (`container.googleapis.com`)
+     - **Compute Engine API** (`compute.googleapis.com`)
+     - **Container Registry API** (`containerregistry.googleapis.com`) (optional, for custom Docker images)
 
-Step 3:
-	To connect to GKE Cluster
-I.	 gcloud container clusters get-credentials shkeeper-cluster --region us-central1-a --project shkeeper-project
-	Verify connection
-I.	 kubectl get nodes
+### Step 2: Provision GKE Cluster with Terraform
+1. **Create `main.tf`**:
+   - Create a Terraform configuration file (`main.tf`) to define a GKE cluster. Example:
+     ```hcl
+     provider "google" {
+       project = "shkeeper-project"
+       region  = "us-central1"
+     }
 
-Step 4:
-	git clone https://github.com/vsys-host/shkeeper.io.git
-cd shkeeper.io
-	The shkeeper.io README suggests adding specific Helm repositories
-II.	helm repo add vsys-host https://vsys-host.github.io/helm-charts
-III.	helm repo add mittwald https://helm.mittwald.de
-IV.	helm repo add jetstack https://charts.jetstack.io
-V.	helm repo update
-VI.	helm install kubernetes-secret-generator mittwald/kubernetes-secret-generator --namespace kube-system
+     resource "google_container_cluster" "primary" {
+       name                = "shkeeper-cluster"
+       location            = "us-central1-a"
+       remove_default_node_pool = true
+       initial_node_count       = 3
+       deletion_protection = false
+     }
 
-	created a values.yml- 
-	The values.yml file is a Helm configuration file that customizes the vsys-host/shkeeper chart’s behavior during deployment. It overrides the chart’s default settings (helm show values vsys-host/shkeeper) to define pod images, enable/disable features, configure storage, and expose services. For our setup 
-1.	 helm install -f values.yaml shkeeper vsys-host/shkeeper --namespace default
-	To access the application we can get the external ip by running following command
-               kubectl get services –n shkeeper
-	Open http://<EXTERNAL-IP>:5000 in a browser.
+     resource "google_container_node_pool" "primary_nodes" {
+       name       = "default-pool"
+       cluster    = google_container_cluster.primary.name
+       location   = google_container_cluster.primary.location
+       node_count = 2
 
+       node_config {
+         machine_type = "e2-standard-4"
+         preemptible  = true
+         disk_size_gb = 100
+         oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+       }
+     }
 
+     output "cluster_endpoint" {
+       value = google_container_cluster.primary.endpoint
+     }
+     ```
 
+2. **Apply Terraform Configuration**:
+   - Run the following commands in the directory containing `main.tf`:
+     ```bash
+     terraform init
+     terraform plan
+     terraform apply
+     ```
 
+3. **Authenticate with GCP**:
+   - Ensure the Google Cloud SDK is installed.
+   - Authenticate and set the project:
+     ```bash
+     gcloud auth login
+     gcloud config set project shkeeper-project
+     ```
+   - Verify the project configuration:
+     ```bash
+     gcloud config get-value project
+     ```
 
+### Step 3: Connect to the GKE Cluster
+1. **Get Cluster Credentials**:
+   - Authenticate `kubectl` with the GKE cluster:
+     ```bash
+     gcloud container clusters get-credentials shkeeper-cluster --region us-central1-a --project shkeeper-project
+     ```
 
+2. **Verify Connection**:
+   - Confirm that `kubectl` can communicate with the cluster:
+     ```bash
+     kubectl get nodes
+     ```
 
+### Step 4: Deploy SHKeeper with Helm
+1. **Clone SHKeeper Repository**:
+   - Clone the SHKeeper Helm chart repository:
+     ```bash
+     git clone https://github.com/vsys-host/shkeeper.io.git
+     cd shkeeper.io
+     ```
 
+2. **Add Helm Repositories**:
+   - Add the required Helm repositories as specified in the SHKeeper README:
+     ```bash
+     helm repo add vsys-host https://vsys-host.github.io/helm-charts
+     helm repo add mittwald https://helm.mittwald.de
+     helm repo add jetstack https://charts.jetstack.io
+     helm repo update
+     ```
 
-About values.yml file
+3. **Install Kubernetes Secret Generator**:
+   - Deploy the secret generator for managing secrets in the cluster:
+     ```bash
+     helm install kubernetes-secret-generator mittwald/kubernetes-secret-generator --namespace kube-system
+     ```
 
-	storageClassName: standard-rwo 
-Purpose: Defines the Kubernetes StorageClass for all PVCs(Persistent volume claims) in the deployment
-Value: standard-rwo (ReadWriteOnce SSD in GKE). GKE’s default StorageClass for persistent disks, ensuring compatibility and performance (SSD-backed).
-	Why were this values chosen in values.yml Started with helm show values vsys-host/shkeeper to understand structure and defaults.
-	The vsys-host/shkeeper chart contains templates (e.g., templates/bitcoind-deployment.yaml) that define Kubernetes resources
-	We can enable crypto currencies as per our goal simply by modifying the values.yml file
-	Helm repository- https://github.com/vsys-host/helm-charts/blob/main/charts/shkeeper/templates/deployments/ethereum-shkeeper.yaml
-	Refer- https://github.com/AKD-2022/shkeeper.io.git (you will find the main.tf and values.yml here)
+4. **Create `values.yaml`**:
+   - Create a `values.yaml` file to customize the SHKeeper Helm chart. Example configuration:
+     ```yaml
+     storageClassName: standard-rwo
+     ```
+   - This sets the StorageClass for Persistent Volume Claims (PVCs) to `standard-rwo` (GKE’s default SSD-backed StorageClass).
+   - Use `helm show values vsys-host/shkeeper` to view default values and customize as needed (e.g., enable specific cryptocurrencies).
 
+5. **Deploy SHKeeper**:
+   - Install the SHKeeper Helm chart with the custom `values.yaml`:
+     ```bash
+     helm install -f values.yaml shkeeper vsys-host/shkeeper --namespace default
+     ```
 
+6. **Access the Application**:
+   - Get the external IP of the SHKeeper service:
+     ```bash
+     kubectl get services -n default
+     ```
+   - Open `http://<EXTERNAL-IP>:5000` in a browser to access the SHKeeper application.
 
+## About `values.yaml`
 
- 
+The `values.yaml` file customizes the behavior of the `vsys-host/shkeeper` Helm chart by overriding default settings. Key configurations include:
 
+- **storageClassName: standard-rwo**
+  - **Purpose**: Specifies the Kubernetes StorageClass for all Persistent Volume Claims (PVCs) in the deployment.
+  - **Value**: `standard-rwo` (ReadWriteOnce SSD in GKE), GKE’s default StorageClass for persistent disks, ensuring compatibility and high performance.
+  - **Reason**: Chosen for reliability and performance in GKE, as SSD-backed storage is suitable for payment gateway workloads.
 
+- **Customization Process**:
+  - Start by inspecting the chart’s defaults with:
+    ```bash
+    helm show values vsys-host/shkeeper
+    ```
+  - The `vsys-host/shkeeper` chart includes templates (e.g., `templates/bitcoind-deployment.yaml`) that define Kubernetes resources like Deployments and PVCs.
+  - Modify `values.yaml` to enable specific cryptocurrencies or adjust resources (e.g., pod images, storage, or service exposure) based on your requirements.
 
+- **Cryptocurrency Support**:
+  - Enable support for specific cryptocurrencies (e.g., Bitcoin, Ethereum) by modifying `values.yaml`. Refer to the chart’s templates, such as:
+    - [Ethereum SHKeeper Deployment](https://github.com/vsys-host/helm-charts/blob/main/charts/shkeeper/templates/deployments/ethereum-shkeeper.yaml).
 
- 
+- **Helm Repository**:
+  - The SHKeeper Helm chart is hosted at: [vsys-host/helm-charts](https://github.com/vsys-host/helm-charts).
 
+- **Reference Repository**:
+  - Example `main.tf` and `values.yaml` files are available at: [AKD-2022/shkeeper.io](https://github.com/AKD-2022/shkeeper.io).
+
+## Additional Notes
+- Ensure the GKE cluster has sufficient resources (e.g., `e2-standard-4` nodes with 100 GB disks) to handle SHKeeper’s workload.
+- Use preemptible nodes (`preemptible = true` in `main.tf`) for cost savings, but be aware they may terminate after 24 hours.
+- Regularly update the Helm chart and repositories (`helm repo update`) to incorporate the latest fixes and features.
 
 
 
